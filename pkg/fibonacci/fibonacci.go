@@ -18,11 +18,15 @@ type Fibonacci struct {
 	dst        []int
 }
 
+func (f *Fibonacci) SetDst(dst []int) {
+	f.dst = dst
+}
+
 func (f *Fibonacci) isValidArgs(n int) bool {
 	if f.prev == -1 && f.next == -1 {
 		return true
 	}
-	if n < 1 || f.prev == f.next || !f.Check(f.prev) || !f.Check(f.next) {
+	if n < 1 || !f.Check(f.prev) || !f.Check(f.next) {
 		return false
 	}
 	return true
@@ -39,8 +43,8 @@ func NewFibonacciWithArgs(prev int, next int, dst []int) *Fibonacci {
 // Generate – генератор последовательности
 func (f *Fibonacci) Generate(n int) ([]int, error) {
 	if !f.isValidArgs(n) {
-		return nil, fmt.Errorf("bad args:\nprev – %d\nnext – %d",
-			f.prev, f.next)
+		return nil, fmt.Errorf("bad args:\nprev – %d\nnext – %d\nn – %d",
+			f.prev, f.next, n)
 	}
 	f.checkDst(n)
 	var i int
@@ -63,7 +67,7 @@ func (f *Fibonacci) Generate(n int) ([]int, error) {
 }
 
 func (f *Fibonacci) checkDst(n int) {
-	if f.dst != nil {
+	if f.dst == nil {
 		f.dst = make([]int, 0, n)
 	}
 }
