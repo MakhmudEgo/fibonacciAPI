@@ -2,28 +2,29 @@ package service
 
 import (
 	"fibonacciAPI/pkg/fibonacci"
+	"fibonacciAPI/pkg/storage"
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	"time"
 )
 
-const (
-	REDIS_FIB_KEY = "fib:seq"
-	REDIS_FIB_LOG = "fib:error:log"
-)
-
 type iService interface {
 	Execute(int, int) ([]int, error)
 	parse(int, int) error
-	storage(int, int) ([]int, bool, error)
+	noFull([]int, int64) error
+	noElemInCashForResponse(int64) error
 }
 
 type Fibonacci struct {
-	rdb *redis.Client
+	rdb        *redis.Client
+	fib        *fibonacci.Fibonacci
+	prev, next int // Последние 2 числа Фибоначчи
+	resN       int // С какого элемента ответ
+	cash       int // С какого элемента кэшировать
 }
 
 func NewFibonacci(rdb *redis.Client) *Fibonacci {
-	return &Fibonacci{rdb: rdb}
+	return &Fibonacci{rdb: rdb, prev: -1, next: -1}
 }
 
 func (f *Fibonacci) Execute(from, to int) ([]int, error) {
@@ -32,55 +33,36 @@ func (f *Fibonacci) Execute(from, to int) ([]int, error) {
 		return nil, err
 	}
 
-	res, n, full, err := f.storage(from, to)
+	stg := storage.NewFibonacci(f.rdb)
+	res, n, full, err := stg.Check(from, to)
 	if err != nil {
 		f.serviceErrors(err)
 		return nil, err
 	}
-	var fib *fibonacci.Fibonacci
+
 	if full {
 		return res, nil
 	} else if res != nil { // no change capacity res
-		if len(res) > 1 {
-			fib = fibonacci.NewFibonacciWithArgs(res[len(res)-2], res[len(res)-1], res)
-		} else if n > 1 {
-			prev, err := f.rdb.LIndex(f.rdb.Context(), REDIS_FIB_KEY, n-2).Int()
-			if err != nil {
-				f.serviceErrors(err)
-				return nil, err
-			}
-			fib = fibonacci.NewFibonacciWithArgs(prev, res[len(res)-1], res)
-		}
-	} else if n != 0 { // new capacity res
-		var prev, next *redis.StringCmd
-		if _, err = f.rdb.Pipelined(f.rdb.Context(), func(p redis.Pipeliner) error {
-			prev = p.LIndex(f.rdb.Context(), REDIS_FIB_KEY, n-2)
-			next = p.LIndex(f.rdb.Context(), REDIS_FIB_KEY, n-1)
-			return nil
-		}); err != nil {
+		if err = f.noFull(res, n); err != nil {
 			f.serviceErrors(err)
 			return nil, err
 		}
-		prevInt, prevErr := prev.Int()
-		nextInt, nextErr := next.Int()
-		if prevErr != nil || nextErr != nil {
+	} else { // new capacity res
+		if err = f.noElemInCashForResponse(n); err != nil {
 			f.serviceErrors(err)
 			return nil, err
 		}
-		if n > 1 {
-			fib = fibonacci.NewFibonacciWithArgs(prevInt, nextInt, nil)
-		} else {
-			fib = fibonacci.NewFibonacciWithArgs(-1, nextInt, nil)
-		}
-	} else {
-		fib = fibonacci.NewFibonacciWithArgs(-1, -1, nil)
+		f.resN = from - int(n) - 1
 	}
-	res, err = fib.Generate(to - len(res))
+	f.fib = fibonacci.NewFibonacciWithArgs(f.prev, f.next, res)
+	res, err = f.fib.Generate(to - int(n))
 	if err != nil {
 		f.serviceErrors(err)
 		return nil, err
 	}
-	return res, nil
+
+	go stg.Set(res[f.cash:])
+	return res[f.resN:], nil
 }
 
 func (f *Fibonacci) parse(from, to int) error {
@@ -95,33 +77,46 @@ func (f *Fibonacci) parse(from, to int) error {
 	return err
 }
 
-// storage – []int: res; int: count; bool: full?, error _+_
-func (f *Fibonacci) storage(from, to int) ([]int, int64, bool, error) {
-	// get exists len seq Fibonacci
-	n, err := f.rdb.LLen(f.rdb.Context(), REDIS_FIB_KEY).Result()
-	if err != nil {
-		f.serviceErrors(err)
-		return nil, n, false, err
+func (f *Fibonacci) noFull(res []int, n int64) error {
+	var err error
+	f.cash = len(res)
+	if len(res) > 1 {
+		f.prev, f.next = res[len(res)-2], res[len(res)-1]
+	} else if n > 1 {
+		f.prev, err = f.rdb.LIndex(f.rdb.Context(), storage.REDIS_FIB_KEY, n-2).Int()
+		if err != nil {
+			return err
+		}
+		f.next = res[len(res)-1]
 	}
+	return err
+}
 
-	var res []int
-	// if n >= to
-	if n >= int64(from) {
-		res = make([]int, 0, to-from+1)
-		// todo:: proff ScanSlice vs stringSlice
-		if err = f.rdb.LRange(f.rdb.Context(),
-			REDIS_FIB_KEY,
-			int64(from-1),
-			int64(to-1)).ScanSlice(&res); err != nil {
-			return nil, n, false, err
-		}
-		if n >= int64(to) {
-			return res, n, true, nil
-		}
+func (f *Fibonacci) noElemInCashForResponse(n int64) error {
+	if n == 0 {
+		return nil
 	}
-	return res, n, false, nil
+	var err error
+	var prevStr, nextStr *redis.StringCmd
+	if _, err = f.rdb.Pipelined(f.rdb.Context(), func(p redis.Pipeliner) error {
+		prevStr = p.LIndex(f.rdb.Context(), storage.REDIS_FIB_KEY, n-2)
+		nextStr = p.LIndex(f.rdb.Context(), storage.REDIS_FIB_KEY, n-1)
+		return nil
+	}); err != nil {
+		return err
+	}
+	var prevErr, nextErr error
+	f.prev, prevErr = prevStr.Int()
+	f.next, nextErr = nextStr.Int()
+	if prevErr != nil || nextErr != nil {
+		return err
+	}
+	if n == 1 {
+		f.prev = -1
+	}
+	return err
 }
 
 func (f *Fibonacci) serviceErrors(err error) {
-	f.rdb.LPush(f.rdb.Context(), REDIS_FIB_LOG, "service: "+err.Error()+time.Now().String())
+	f.rdb.LPush(f.rdb.Context(), storage.REDIS_FIB_LOG, "service: "+err.Error()+time.Now().String())
 }

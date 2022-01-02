@@ -11,6 +11,7 @@ type iFibonacci interface {
 	Check(int) bool
 	checkDst(int)
 	isValidArgs(int) bool
+	init(int) int
 }
 
 type Fibonacci struct {
@@ -47,15 +48,8 @@ func (f *Fibonacci) Generate(n int) ([]int, error) {
 			f.prev, f.next, n)
 	}
 	f.checkDst(n)
-	var i int
-	if f.prev == -1 && f.next == -1 {
-		if n > 1 {
-			f.dst = append(f.dst, 0, 1)
-			i = 2
-		}
-		f.dst = append(f.dst, 0)
-		i = 1
-	}
+	i := f.init(n)
+
 	for ; i < n; i++ {
 		f.prev, f.next = f.next, f.prev+f.next
 		if f.next < 0 {
@@ -64,12 +58,6 @@ func (f *Fibonacci) Generate(n int) ([]int, error) {
 		f.dst = append(f.dst, f.next)
 	}
 	return f.dst, nil
-}
-
-func (f *Fibonacci) checkDst(n int) {
-	if f.dst == nil {
-		f.dst = make([]int, 0, n)
-	}
 }
 
 // Check – проверка на число Фибоначчи
@@ -81,4 +69,31 @@ func (f *Fibonacci) Check(n int) bool {
 		return true
 	}
 	return false
+}
+
+func (f *Fibonacci) checkDst(n int) {
+	if f.dst == nil {
+		f.dst = make([]int, 0, n)
+	}
+}
+
+func (f *Fibonacci) init(n int) int {
+	var i int
+	if f.prev == -1 {
+		if f.next == -1 {
+			if n > 1 {
+				f.dst = append(f.dst, 0, 1)
+				i = 2
+				f.prev, f.next = 0, 1
+			} else {
+				f.dst = append(f.dst, 0)
+				i = 1
+			}
+		} else {
+			f.dst = append(f.dst, 1)
+			f.prev, f.next = 0, 1
+			i = 1
+		}
+	}
+	return i
 }
