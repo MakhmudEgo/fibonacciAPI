@@ -24,10 +24,12 @@ func (f *Fibonacci) SetDst(dst []int) {
 }
 
 func (f *Fibonacci) isValidArgs(n int) bool {
-	if f.prev == -1 && f.next == -1 {
+	if (f.prev == -1 && f.next == -1 ||
+		f.prev == 1 && f.next == 1) && n > 0 {
 		return true
 	}
-	if n < 1 || !f.Check(f.prev) || !f.Check(f.next) {
+	if f.prev == f.next || n < 1 ||
+		!f.Check(f.prev) || !f.Check(f.next) {
 		return false
 	}
 	return true
@@ -62,6 +64,7 @@ func (f *Fibonacci) Generate(n int) ([]int, error) {
 
 // Check – проверка на число Фибоначчи
 func (f *Fibonacci) Check(n int) bool {
+	// todo:bug overflow int**
 	x := math.Sqrt(5*math.Pow(float64(n), 2) + 4)
 	y := math.Sqrt(5*math.Pow(float64(n), 2) - 4)
 	if x == float64(int(x)) ||
