@@ -1,4 +1,4 @@
-package fibonacci
+package numbers
 
 import (
 	"reflect"
@@ -23,11 +23,10 @@ func TestFibonacci_Check(t *testing.T) {
 		// todo:bug:middle overflow int
 		{160500643816360000, false},
 	}
-	f := NewFibonacci(nil)
 	for _, tt := range tests {
 		t.Run("TestFibonacci_Check", func(t *testing.T) {
 
-			if got := f.Check(tt.arg); got != tt.want {
+			if got := Number(tt.arg); got != tt.want {
 				t.Errorf("Check() = %v, want %v", got, tt.want)
 			}
 		})
@@ -57,11 +56,9 @@ func TestFibonacci_Generate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := &Fibonacci{
-				prev: tt.fields.prev,
-				next: tt.fields.next,
-			}
-			got, err := f.Generate(tt.arg)
+			f := FibonacciWithArgs(tt.fields.prev, tt.fields.next)
+			res := make([]int, 0, len(tt.want))
+			got, err := f.Generate(res, tt.arg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Generate() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -97,7 +94,7 @@ func TestFibonacci_isValidArgs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := &Fibonacci{
+			f := &fibonacci{
 				prev: tt.fields.prev,
 				next: tt.fields.next,
 			}

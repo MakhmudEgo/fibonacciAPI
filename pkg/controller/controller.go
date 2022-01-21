@@ -1,9 +1,7 @@
 package controller
 
 import (
-	"encoding/json"
 	"fibonacciAPI/pkg/service"
-	"fibonacciAPI/pkg/storage"
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	"log"
@@ -11,14 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 )
-
-type iFibonacci interface {
-	controllerErrors(error, http.ResponseWriter) bool
-	writeError(w http.ResponseWriter, rsp []byte, code int)
-	parseQueryString(w http.ResponseWriter, r *http.Request) (int, int, bool)
-}
 
 type Fibonacci struct {
 	rdb *redis.Client
@@ -43,72 +34,59 @@ func NewFibonacci() *Fibonacci {
 
 func (f *Fibonacci) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		f.writeError(w, []byte("I’m captain Jack Sparrow "), http.StatusTeapot)
+		http.Error(w, "I’m captain Jack Sparrow", http.StatusTeapot)
 		return
 	}
+
 	// parse query string
-	from, to, ok := f.parseQueryString(w, r)
-	if !ok {
+	from, to, err := parseQueryString(r)
+	if Error(w, err) {
 		return
 	}
 
 	// get sequence Fibonacci
-	srv := service.NewFibonacci(f.rdb)
+	srv := service.Fibonacci(f.rdb)
 	seqFib, err := srv.Execute(from, to)
-	if f.controllerErrors(err, w) {
+	if Error(w, err) {
 		return
 	}
 
-	str := fmt.Sprint(seqFib)
-	err = json.NewEncoder(w).Encode(strings.Split(str[1:len(str)-1], " "))
-	if f.controllerErrors(err, w) {
-		return
-	}
-
+	//w.Header().Add("content-type", "json/application")
+	_, err = fmt.Fprint(w, seqFib)
+	Error(w, err)
 }
 
-func (f *Fibonacci) controllerErrors(err error, w http.ResponseWriter) bool {
+func Error(w http.ResponseWriter, err error) bool {
 	if err == nil {
 		return false
 	}
 	if isClientError(err) {
 		if strings.Contains(err.Error(), "Atoi: parsing") {
-			f.writeError(w, []byte("bad query args"), http.StatusBadRequest)
+			http.Error(w, "bad query args", http.StatusBadRequest)
 		} else {
-			f.writeError(w, []byte(err.Error()), http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
 		return true
 	}
 
-	f.rdb.LPush(f.rdb.Context(), storage.REDIS_FIB_LOG, "controller: "+err.Error()+time.Now().String())
-
 	if strings.Contains(err.Error(), "overflow") {
-		f.writeError(w, []byte("The service supports up to 93 Fibonacci numbers,\nbut we are already working on increasing the numbers)"), http.StatusInternalServerError)
+		http.Error(w, "The service supports up to 93 Fibonacci numbers,\nbut we are already working on increasing the numbers)", http.StatusInternalServerError)
 	} else {
-		f.writeError(w, []byte("Status Internal Server Error"), http.StatusInternalServerError)
+		http.Error(w, "Status Internal Server Error", http.StatusInternalServerError)
 	}
 	return true
 }
 
-func (f *Fibonacci) writeError(w http.ResponseWriter, rsp []byte, code int) {
-	w.WriteHeader(code)
-	if _, err := w.Write(rsp); err != nil {
-		f.rdb.LPush(f.rdb.Context(), storage.REDIS_FIB_LOG, "controller: "+err.Error()+time.Now().String())
-	}
-}
-
-func (f *Fibonacci) parseQueryString(w http.ResponseWriter, r *http.Request) (int, int, bool) {
+func parseQueryString(r *http.Request) (int, int, error) {
 	var from, to int
 	var err error
 	from, err = strconv.Atoi(r.URL.Query().Get("from"))
-	if f.controllerErrors(err, w) {
-		return from, to, false
+	if err != nil {
+		return from, to, err
 	}
 	to, err = strconv.Atoi(r.URL.Query().Get("to"))
-	if f.controllerErrors(err, w) {
-		return from, to, false
-	}
-	return from, to, true
+
+	return from, to, err
 }
 
 func isClientError(err error) bool {

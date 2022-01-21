@@ -53,7 +53,7 @@ func TestFibonacci_Execute(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := NewFibonacci(tt.fields.rdb)
+			f := Fibonacci(tt.fields.rdb)
 			got, err := f.Execute(tt.args.from, tt.args.to)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Execute() error = %v, wantErr %v", err, tt.wantErr)
