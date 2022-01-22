@@ -1,5 +1,7 @@
 package numbers
 
+import "math/big"
+
 type Numbers interface {
-	Generate([]int, int) ([]int, error)
+	Generate([]*big.Int, int) ([]*big.Int, error)
 }

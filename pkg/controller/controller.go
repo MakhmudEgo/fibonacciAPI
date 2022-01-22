@@ -1,8 +1,8 @@
 package controller
 
 import (
+	"encoding/json"
 	"fibonacciAPI/pkg/service"
-	"fmt"
 	"github.com/go-redis/redis/v8"
 	"log"
 	"net/http"
@@ -51,8 +51,8 @@ func (f *Fibonacci) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//w.Header().Add("content-type", "json/application")
-	_, err = fmt.Fprint(w, seqFib)
+	w.Header().Add("content-type", "application/json")
+	err = json.NewEncoder(w).Encode(seqFib)
 	Error(w, err)
 }
 
@@ -68,12 +68,7 @@ func Error(w http.ResponseWriter, err error) bool {
 		}
 		return true
 	}
-
-	if strings.Contains(err.Error(), "overflow") {
-		http.Error(w, "The service supports up to 93 Fibonacci numbers,\nbut we are already working on increasing the numbers)", http.StatusInternalServerError)
-	} else {
-		http.Error(w, "Status Internal Server Error", http.StatusInternalServerError)
-	}
+	http.Error(w, "Status Internal Server Error", http.StatusInternalServerError)
 	return true
 }
 

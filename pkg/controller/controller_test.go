@@ -49,7 +49,7 @@ func TestFibonacci_ServeHTTP(t *testing.T) {
 		{"kek",
 			fields{rdb},
 			args{rcdr, httptest.NewRequest("GET", "/?from=1&to=13", nil)},
-			`["0","1","1","2","3","5","8","13","21","34","55","89","144"]`,
+			`[0,1,1,2,3,5,8,13,21,34,55,89,144]`,
 		},
 	}
 	for _, tt := range tests {

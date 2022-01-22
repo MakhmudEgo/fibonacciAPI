@@ -1,5 +1,7 @@
 package service
 
+import "math/big"
+
 type Service interface {
-	Execute(int, int) ([]int, error)
+	Execute(int, int) ([]*big.Int, error)
 }

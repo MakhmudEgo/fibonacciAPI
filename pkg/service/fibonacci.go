@@ -6,20 +6,21 @@ import (
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	"log"
+	"math/big"
 )
 
 type fibonacciService struct {
 	rdb        *redis.Client
-	prev, next int // Последние 2 числа Фибоначчи
-	resN       int // С какого элемента ответ
-	cash       int // С какого элемента кэшировать
+	prev, next *big.Int // Последние 2 числа Фибоначчи
+	resN       int      // С какого элемента ответ
+	cash       int      // С какого элемента кэшировать
 }
 
 func Fibonacci(rdb *redis.Client) Service {
-	return &fibonacciService{rdb: rdb, prev: -1, next: -1}
+	return &fibonacciService{rdb: rdb, prev: big.NewInt(-1), next: big.NewInt(-1)}
 }
 
-func (f *fibonacciService) Execute(from, to int) ([]int, error) {
+func (f *fibonacciService) Execute(from, to int) ([]*big.Int, error) {
 	if err := f.parse(from, to); err != nil {
 		return nil, err
 	}
@@ -68,16 +69,17 @@ func (f *fibonacciService) parse(from, to int) error {
 	return err
 }
 
-func (f *fibonacciService) noFull(res []int, n int64) error {
+func (f *fibonacciService) noFull(res []*big.Int, n int64) error {
 	var err error
 	f.cash = len(res)
 	if len(res) > 1 {
 		f.prev, f.next = res[len(res)-2], res[len(res)-1]
 	} else if n > 1 {
-		f.prev, err = f.rdb.LIndex(f.rdb.Context(), storage.REDIS_FIB_KEY, n-2).Int()
+		prev, err := f.rdb.LIndex(f.rdb.Context(), storage.REDIS_FIB_KEY, n-2).Result()
 		if err != nil {
 			return err
 		}
+		f.prev.SetString(prev, 10)
 		f.next = res[len(res)-1]
 	}
 	return err
@@ -96,14 +98,15 @@ func (f *fibonacciService) noElemInCashForResponse(n int64) error {
 	}); err != nil {
 		return err
 	}
-	var prevErr, nextErr error
-	f.prev, prevErr = prevStr.Int()
-	f.next, nextErr = nextStr.Int()
+	prev, prevErr := prevStr.Result()
+	prev, nextErr := nextStr.Result()
+	f.prev.SetString(prev, 10)
+	f.next.SetString(prev, 10)
 	if prevErr != nil || nextErr != nil {
 		return err
 	}
 	if n == 1 {
-		f.prev = -1
+		f.prev.SetInt64(-1)
 	}
 	return err
 }

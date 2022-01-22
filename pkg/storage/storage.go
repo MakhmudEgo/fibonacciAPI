@@ -1,8 +1,10 @@
 package storage
 
+import "math/big"
+
 const REDIS_FIB_KEY = "fib:seq"
 
 type Storage interface {
-	Set([]int) error
-	Get(int, int) ([]int, int64, bool, error)
+	Set([]*big.Int) error
+	Get(int, int) ([]*big.Int, int64, bool, error)
 }
