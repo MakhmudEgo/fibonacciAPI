@@ -48,7 +48,8 @@ func (f *fibonacci) Generate(dst []*big.Int, n int) ([]*big.Int, error) {
 }
 
 // Number – проверка на число Фибоначчи
-// todo::bug::из-за не идеального флоата
+// на больших числах не будет работать, потому что после того,
+// как big.Float уходит в Inf, действия x.Sub() и x.Add() не будут работать
 func Number(n *big.Int) bool {
 	if n.Int64() == 0 {
 		return true

@@ -73,14 +73,15 @@ func (f *fibonacciService) noFull(res []*big.Int, n int64) error {
 	var err error
 	f.cash = len(res)
 	if len(res) > 1 {
-		f.prev, f.next = res[len(res)-2], res[len(res)-1]
+		f.prev.Set(res[len(res)-2])
+		f.next.Set(res[len(res)-1])
 	} else if n > 1 {
 		prev, err := f.rdb.LIndex(f.rdb.Context(), storage.REDIS_FIB_KEY, n-2).Result()
 		if err != nil {
 			return err
 		}
 		f.prev.SetString(prev, 10)
-		f.next = res[len(res)-1]
+		f.next.Set(res[len(res)-1])
 	}
 	return err
 }
