@@ -45,7 +45,7 @@ func TestFibonacci_Execute(t *testing.T) {
 		wantErr bool
 	}{
 		{"from: 0, to: 10", fields{rdb}, args{0, 10}, nil, true},
-		//{"from: 1, to: 94", fields{rdb}, args{1, 94}, nil, false},
+		{"from: 1, to: 94", fields{rdb}, args{81, 81}, []*big.Int{big.NewInt(23416728348467685)}, false},
 		{"from: 4, to: 94", fields{rdb}, args{4, 9}, []*big.Int{big.NewInt(2),
 			big.NewInt(3),
 			big.NewInt(5),
@@ -55,8 +55,8 @@ func TestFibonacci_Execute(t *testing.T) {
 		}, false},
 		{"from: 114, to: 94", fields{rdb}, args{114, 94}, nil, true},
 		{"from: -1, to: 34", fields{rdb}, args{114, 94}, nil, true},
-		//{"from: 11, to: 11", fields{rdb}, args{11, 11}, []int{55}, false},
-		//{"from: 11, to: 11", fields{rdb}, args{11, 12}, []int{55, 89}, false},
+		{"from: 11, to: 11", fields{rdb}, args{11, 11}, []*big.Int{big.NewInt(55)}, false},
+		{"from: 11, to: 12", fields{rdb}, args{11, 12}, []*big.Int{big.NewInt(55), big.NewInt(89)}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
