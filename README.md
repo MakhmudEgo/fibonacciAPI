@@ -4,8 +4,8 @@
 ## build:
 #### 1. Чтобы запустить сервис убедитесь, что у вас установлен docker ([см](https://www.docker.com)) и запущен.
 #### 2. после того, как вы скачали проект, зайдите в папку проекта и в терминале введите следующую команду:
-		make или make run
+	make или make run
 ### 3.1 http: 
 	curl 'http://localhost:8888/fibonacci?from=1&to=10000'
 ### 3.2 grpc: 
-		./grpc_client 1 2000
+	./grpc_client 1 2000
