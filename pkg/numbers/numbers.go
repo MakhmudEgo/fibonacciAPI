@@ -3,5 +3,6 @@ package numbers
 import "math/big"
 
 type Numbers interface {
-	Generate([]*big.Int, int) ([]*big.Int, error)
+	// Generate – генерация чисел
+	Generate([]*big.Int, int64) ([]*big.Int, error)
 }

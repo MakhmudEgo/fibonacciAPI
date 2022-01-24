@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fibonacciAPI/pkg/controller"
+	_ "fibonacciAPI/pkg/routes"
 	"github.com/joho/godotenv"
 	"log"
 	"net/http"
@@ -15,6 +15,9 @@ func init() {
 }
 
 func main() {
-	http.Handle("/fibonacci", controller.NewFibonacci())
-	log.Fatalln(http.ListenAndServe(os.Getenv("SERVER_PORT"), nil))
+	log.Println("server start")
+	err := http.ListenAndServe(os.Getenv("SERVER_PORT"), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

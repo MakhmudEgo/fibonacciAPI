@@ -9,7 +9,7 @@ type fibonacci struct {
 	prev, next *big.Int
 }
 
-func (f *fibonacci) isValidArgs(n int) bool {
+func (f *fibonacci) isValidArgs(n int64) bool {
 	if (f.prev.Cmp(big.NewInt(-1)) == 0 && f.next.Cmp(big.NewInt(-1)) == 0 ||
 		f.prev.Cmp(big.NewInt(1)) == 0 && f.next.Cmp(big.NewInt(1)) == 0) && n > 0 {
 		return true
@@ -30,7 +30,7 @@ func FibonacciWithArgs(prev *big.Int, next *big.Int) Numbers {
 }
 
 // Generate – генератор последовательности
-func (f *fibonacci) Generate(dst []*big.Int, n int) ([]*big.Int, error) {
+func (f *fibonacci) Generate(dst []*big.Int, n int64) ([]*big.Int, error) {
 	if !f.isValidArgs(n) {
 		return nil, fmt.Errorf("bad args:\nprev – %d\nnext – %d\nn – %d",
 			f.prev, f.next, n)
@@ -73,8 +73,8 @@ func Number(n *big.Int) bool {
 	return r1.Mul(r1, r1).Cmp(tmp1) == 0 || r2.Mul(r2, r2).Cmp(tmp2) == 0
 }
 
-func (f *fibonacci) init(dst []*big.Int, n int) ([]*big.Int, int) {
-	var i int
+func (f *fibonacci) init(dst []*big.Int, n int64) ([]*big.Int, int64) {
+	var i int64
 	if f.prev.Cmp(big.NewInt(-1)) == 0 && f.next.Cmp(big.NewInt(-1)) == 0 {
 		if n > 1 {
 			dst = append(dst, big.NewInt(0), big.NewInt(1))
@@ -91,4 +91,10 @@ func (f *fibonacci) init(dst []*big.Int, n int) ([]*big.Int, int) {
 	}
 
 	return dst, i
+}
+
+func PrintFibonacci(seq []*big.Int) {
+	for i, b := range seq {
+		fmt.Printf("%d) %s\n", i+1, b)
+	}
 }
