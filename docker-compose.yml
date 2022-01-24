@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  http_server:
+    build:
+      context: .
+      dockerfile: ./deploy/http_server/Dockerfile
+    restart: always
+    ports:
+      - '8888:8888'
+    depends_on:
+      - redis
+
+  grpc_server:
+    build:
+      context: .
+      dockerfile: ./deploy/grpc_server/Dockerfile
+    restart: always
+    ports:
+      - '7777:7777'
+    depends_on:
+      - redis
+
+  redis:
+    image: redis
+    restart: always
+    ports:
+      - '6379:6379'
+    command: >
+      --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - ./db/data/redis/redis.conf:/usr/local/etc/redis/redis.conf

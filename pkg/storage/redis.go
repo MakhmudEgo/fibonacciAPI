@@ -2,10 +2,17 @@ package storage
 
 import (
 	"github.com/go-redis/redis/v8"
+	"github.com/joho/godotenv"
 	"log"
 	"math/big"
 	"os"
 )
+
+func init() {
+	if err := godotenv.Load(); err != nil {
+		log.Fatalln("No .env file found")
+	}
+}
 
 type Redis redis.Client
 

@@ -27,7 +27,6 @@ type FibGenerator struct {
 }
 
 func (g *FibGenerator) Get(ctx context.Context, r *fibonaccigrpc.Request) (*fibonaccigrpc.Response, error) {
-	log.Println(r.X, r.Y)
 	res, err := service.Fibonacci(repo).Execute(r.X, r.Y)
 	if err != nil {
 		return nil, err
